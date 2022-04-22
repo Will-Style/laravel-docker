@@ -1,0 +1,63 @@
+version: '3.5'
+services:
+  
+  # apache-php
+  web:
+    build: ./docker/web/
+    volumes:
+      # プロジェクトディレクトリ自体を共有してapacheの方でDocumentRootを変える
+      - ${WORKING_DIR}:/var/www/html
+      - ${APACHE_LOG_DIR}:/var/log/apache2
+    environment:
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      CERT_NAME: ${CERT_NAME}  # これで_wildcard.local.localhost.crt と _wildcard.local.localhost.key が読み込まれる
+      HTTPS_METHOD: "noredirect" # httpアクセスもしたい場合はこれでリダイレクトを無効にする
+      DOCUMENT_ROOT: ${DOCUMENT_ROOT}
+    networks:
+      - myapp-network
+      - local-network
+    restart: always
+
+  # mysql
+  mysql:
+    platform: linux/x86_64 # M1の場合必須
+    build: ./docker/mysql/
+    volumes:
+      # MySQLのデータディレクトリは永続化する
+      - ${MYSQL_DB_VOLUME}:/var/lib/mysql
+      # 初期データを投入する場合はSQLが格納されているdirを指定する
+      - ${MYSQL_DB_INIT}:/docker-entrypoint-initdb.d
+      # MYSQL のログディレクトリを指定する
+      - ${MYSQL_LOG_DIR}:/var/log/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+    # 明示的に stop がされない限り、終了ステータスに関係なく常に再起動が行われる
+    restart: always
+    networks:
+      - myapp-network
+      - local-network
+
+  # phpmyadmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    environment:
+      # アプリと同様にドメインを付与すればphpmyadminも使えるようになる
+      VIRTUAL_HOST: ${MYADMIN_HOST_NAME}
+      CERT_NAME: ${CERT_NAME}
+      PMA_HOST: ${MYSQL_HOST}
+      PMA_USER:  ${MYSQL_USER}
+      PMA_PASSWORD: ${MYSQL_PASSWORD}
+    networks:
+      # アプリと同様に二つのネットワークにつなぐ
+      - myapp-network
+      - local-network
+
+## ここで使用するネットワークの宣言
+networks:
+  # コンテナ内で通信する為のネットワーク
+  myapp-network:
+    name: myapp-network
+  # リバースプロキシからアクセスされる為のネットワーク
+  local-network:
+    external: true  # 外部ネットワークであることを宣言をしておけばdocker-compose downした時に消されない
+    name: local-network
