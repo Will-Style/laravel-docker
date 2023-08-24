@@ -1,5 +1,5 @@
 # 案件やリモート環境に応じてPHPバージョンは変える
-FROM php:7.4-apache
+FROM php:8.0-apache
 
 # ここで必要なものをインストール
 RUN apt-get update \

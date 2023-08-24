@@ -47,6 +47,8 @@ services:
       PMA_HOST: ${MYSQL_HOST}
       PMA_USER:  ${MYSQL_USER}
       PMA_PASSWORD: ${MYSQL_PASSWORD}
+      MEMORY_LIMIT: 128M
+      UPLOAD_LIMIT: 256M
     networks:
       # アプリと同様に二つのネットワークにつなぐ
       - myapp-network
